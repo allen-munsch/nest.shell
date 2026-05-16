@@ -222,16 +222,15 @@ handle_route() {
     local route="$2"
     local headers="$3"
     local body="$4"
-    local full_path="$CONTENT_DIR$route"
-
-    # Strip query string for file lookup
-    local clean_route="${route%%\?*}"
-
-    clog REQ "$method $route"
-
-    # API routes
-    if [[ "$clean_route" == /api/* ]]; then
-        handle_api_request "$method" "$clean_route" "$headers" "$body"
+    
+    # Sanitize the route to prevent path traversal
+    local sanitized_route=$(echo "$route" | sed 's/\.\.//g' | sed 's/^\/*//' | sed 's/\/$//')
+    local full_path="$CONTENT_DIR/$sanitized_route"
+    
+    log handle_route:$method:$sanitized_route
+    # Check if it's an API request
+    if [[ "$route" == /api/* ]]; then
+        handle_api_request "$method" "$route" "$headers" "$body"
         return
     fi
 
